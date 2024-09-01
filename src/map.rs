@@ -1,4 +1,14 @@
+use serde::Deserialize;
 use std::collections::HashMap;
+
+#[derive(Deserialize, Clone, PartialEq, Debug)]
+pub struct KanjiData(pub Vec<String>, pub Vec<String>, pub Vec<String>);
+
+pub fn get_kanji_map() -> HashMap<&'static str, KanjiData> {
+    let binary_data = include_str!("../data/kanji.bin");
+    let value: HashMap<&'static str, KanjiData> = serde_json::from_str(&binary_data).unwrap();
+    value
+}
 
 type KanaMap = HashMap<&'static str, &'static str>;
 
@@ -79,7 +89,7 @@ pub fn get_hiragana_to_romaji_map() -> KanaMap {
         ("ゅ", "xyu"),
         ("ょ", "xyo"),
         ("っ", "q"),
-        ("ゎ", "wa"),
+        // ("ゎ", "wa"),
         ("ゐ", "wi"),
         ("ゑ", "we"),
         ("ゕ", "xka"),
@@ -167,7 +177,7 @@ pub fn get_katakana_to_romaji_map() -> KanaMap {
         ("ュ", "xyu"),
         ("ョ", "xyo"),
         ("ッ", "q"),
-        ("ヮ", "wa"),
+        // ("ヮ", "wa"),
         ("ヰ", "wi"),
         ("ヱ", "we"),
         ("ヵ", "xka"),
