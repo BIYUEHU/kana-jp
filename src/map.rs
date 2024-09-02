@@ -10,7 +10,7 @@ pub fn get_kanji_map() -> HashMap<&'static str, KanjiData> {
     value
 }
 
-type KanaMap = HashMap<&'static str, &'static str>;
+pub type KanaMap = HashMap<&'static str, &'static str>;
 
 pub fn get_hiragana_to_romaji_map() -> KanaMap {
     HashMap::from([

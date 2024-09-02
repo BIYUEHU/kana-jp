@@ -8,6 +8,7 @@ repository = "https://github.com/biyuehu/kana-jp"
 readme = "README.md"
 keywords = ["kana", "japanese", "romaji", "japan", "hiragana", "katakana"]
 license = "GPL-3.0-only"
+ignore = ["target", "cs"]
 
 [dependencies]
 winsafe = { version = "0.0.22", features = ['gui'] }

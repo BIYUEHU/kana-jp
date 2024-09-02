@@ -6,16 +6,53 @@ use map::{
 };
 use std::string::String;
 
+fn handle_kanji_factory<'a>(kanji: bool) -> impl Fn(char) -> String {
+    if kanji {
+        |x: char| {
+            if let Some(KanjiData(kun, on, nanori)) = get_kanji(x) {
+                kun.first()
+                    .or_else(|| on.first())
+                    .or_else(|| nanori.first())
+                    .cloned()
+                    .unwrap_or_else(|| x.to_string())
+                    .replace(".", "")
+            } else {
+                x.to_string()
+            }
+        }
+    } else {
+        |x: char| x.to_string()
+    }
+}
+
+fn handle_char_factory(mapping: map::KanaMap) -> impl Fn(String) -> String {
+    let handle = move |str: String| {
+        mapping
+            .get(str.clone().as_str())
+            .cloned()
+            .unwrap_or(str.to_string().as_str())
+            .to_string()
+    };
+    move |str: String| match str.len() {
+        0 => str,
+        1 => handle(str),
+        _ => str
+            .chars()
+            .map(|c| handle(c.to_string()))
+            .collect::<String>(),
+    }
+}
+
 pub fn get_kanji(char: char) -> Option<KanjiData> {
     let code_point = char as u32;
     let hex_string = format!("{:x}", code_point);
-    println!("{} hex_string: {}", char, hex_string);
     get_kanji_map().get(hex_string.as_str()).cloned()
 }
 
-pub fn to_hiragana(text: &str) -> String {
+pub fn to_hiragana(text: &str, kanji: bool) -> String {
     let romaji_to_hiragana_map = get_romaji_to_hiragana_map();
-    let katakana_to_hiragana_map = get_katakana_to_hiragana_map();
+    let handle_kanji = handle_kanji_factory(kanji);
+    let handle_char = handle_char_factory(get_katakana_to_hiragana_map());
 
     text.to_lowercase()
         .split(' ')
@@ -24,34 +61,18 @@ pub fn to_hiragana(text: &str) -> String {
                 return value.to_string();
             }
             x.chars()
-                // .map(|x| {
-                //     if let Some(KanjiData(kun, on, nanori)) = parse_kanji(x) {
-                //         kun.first()
-                //             .or_else(|| on.first())
-                //             .or_else(|| nanori.first())
-                //             .cloned()
-                //             .unwrap_or_else(|| x.to_string())
-                //             .to_string()
-                //     } else {
-                //         x.to_string()
-                //     }
-                // })
-                .map(|char| {
-                    katakana_to_hiragana_map
-                        .get(char.clone().to_string().as_str())
-                        .cloned()
-                        .unwrap_or(char.to_string().as_str())
-                        .to_string()
-                })
+                .map(&handle_kanji)
+                .map(&handle_char)
                 .collect::<String>()
                 .to_string()
         })
         .collect()
 }
 
-pub fn to_katakana<'a>(text: &str) -> String {
+pub fn to_katakana<'a>(text: &str, kanji: bool) -> String {
     let romaji_to_katakana_map = get_romaji_to_katakana_map();
-    let hiragana_to_katakana_map = get_hiragana_to_katakana_map();
+    let handle_kanji = handle_kanji_factory(kanji);
+    let handle_char = handle_char_factory(get_hiragana_to_katakana_map());
 
     text.to_lowercase()
         .split(' ')
@@ -60,53 +81,28 @@ pub fn to_katakana<'a>(text: &str) -> String {
                 return value.to_string();
             }
             x.chars()
-                // .map(|x| {
-                //     if let Some(KanjiData(kun, on, nanori)) = parse_kanji(x) {
-                //         kun.first()
-                //             .or_else(|| on.first())
-                //             .or_else(|| nanori.first())
-                //             .cloned()
-                //             .unwrap_or_else(|| x.to_string())
-                //             .to_string()
-                //     } else {
-                //         x.to_string()
-                //     }
-                // })
-                .map(|char| {
-                    hiragana_to_katakana_map
-                        .get(char.clone().to_string().as_str())
-                        .cloned()
-                        .unwrap_or(char.to_string().as_str())
-                        .to_string()
-                })
+                .map(&handle_kanji)
+                .map(&handle_char)
                 .collect::<String>()
                 .to_string()
         })
         .collect()
 }
 
-pub fn to_romaji(text: &str) -> String {
-    let mut result = String::new();
+pub fn to_romaji(text: &str, kanji: bool) -> String {
     let hiragana_to_romaji_map = get_hiragana_to_romaji_map();
     let katakana_to_romaji_map = get_katakana_to_romaji_map();
-
-    for char in text.to_lowercase().chars() {
-        if let Some(value) = hiragana_to_romaji_map.get(&String::from(char).as_str()) {
-            result.push_str(format!("{} ", value).as_str())
-        } else if let Some(value) = katakana_to_romaji_map.get(&String::from(char).as_str()) {
-            result.push_str(format!("{} ", value).as_str())
-        } else {
-            result.push(char)
-        }
-    }
 
     String::from(
         text.to_lowercase()
             .chars()
+            .map(handle_kanji_factory(kanji))
+            .collect::<String>()
+            .chars()
             .map(|x| {
-                if let Some(value) = hiragana_to_romaji_map.get(&String::from(x).as_str()) {
+                if let Some(value) = hiragana_to_romaji_map.get(String::from(x).as_str()) {
                     format!("{} ", value)
-                } else if let Some(value) = katakana_to_romaji_map.get(&String::from(x).as_str()) {
+                } else if let Some(value) = katakana_to_romaji_map.get(String::from(x).as_str()) {
                     format!("{} ", value)
                 } else {
                     x.to_string()
@@ -250,22 +246,22 @@ mod tests {
     #[test]
     fn test_to_hiragana() {
         // assert_eq!(to_hiragana("お元気です"), "おおもときです");
-        assert_eq!(to_hiragana("KI"), "き");
-        assert_eq!(to_hiragana("wa ta shi"), "わたし");
+        assert_eq!(to_hiragana("KI", false), "き");
+        assert_eq!(to_hiragana("wa ta shi", false), "わたし");
     }
 
     #[test]
     fn test_to_katakana() {
         // assert_eq!(to_katakana("好きです"), "スイキです");
-        assert_eq!(to_katakana("sa"), "サ");
-        assert_eq!(to_katakana("wa ta shi"), "ワタシ");
+        assert_eq!(to_katakana("sa", false), "サ");
+        assert_eq!(to_katakana("wa ta shi", false), "ワタシ");
     }
 
     #[test]
     fn test_to_romaji() {
         // assert_eq!(to_romaji("夏はいい天気です"), "natsu ha i i tenki desu");
-        assert_eq!(to_romaji("ナ"), "na");
-        assert_eq!(to_romaji("こんにちは"), "ko n ni chi ha");
+        assert_eq!(to_romaji("ナ", false), "na");
+        assert_eq!(to_romaji("こんにちは", false), "ko n ni chi ha");
     }
 
     #[test]
