@@ -6,9 +6,17 @@ authors = ["Arimura Sena <me@hotaru.icu>"]
 description = "A Japanese kana converter library for Rust."
 repository = "https://github.com/biyuehu/kana-jp"
 readme = "README.md"
-keywords = ["kana", "japanese", "romaji", "japan", "hiragana", "katakana"]
+keywords = [
+  "kana",
+  "japanese",
+  "romaji",
+  "japan",
+  "hiragana",
+  "katakana",
+  "kanji",
+]
 license = "GPL-3.0-only"
-ignore = ["target", "cs"]
+exclude = ["target/", "cs/"]
 
 [dependencies]
 winsafe = { version = "0.0.22", features = ['gui'] }

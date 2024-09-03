@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use kana_jp;
 use std::process::Command;
 use std::rc::Rc;
@@ -34,6 +36,7 @@ impl MainWindow {
         let wnd = gui::WindowMain::new(gui::WindowMainOpts {
             title: "Japanese Kana Converter Ex!".to_owned(),
             size: (600, 500),
+            // class_icon,
             style: co::WS::CAPTION
                 | co::WS::SYSMENU
                 | co::WS::CLIPCHILDREN
